@@ -165,9 +165,9 @@ function refresh_yum_sources {
   if debugging; then
     yum update
   else
-    apt-get update -qq > /dev/null 2>&1
+    yum update -y > /dev/null 2>&1
   fi
-  log "Done refreshing APT sources"
+  log "Done refreshing YUM repos"
 }
 
 function refresh_apt_sources {
@@ -196,7 +196,7 @@ function setup_puppet {
         if debugging; then
           yum install puppet-agent
         else
-          yum install puppet-agent --force
+          yum install puppet-agent -y
         fi
       ;;
     esac
