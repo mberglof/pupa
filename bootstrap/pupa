@@ -96,6 +96,7 @@ elif [ -f /etc/redhat-release ]; then
   rel=$(awk '{print $1}' /etc/redhat-release)
   VERSION=$(egrep -o "[[:digit:]]" /etc/redhat-release) || exit 1
   MAJOR=$(echo $VERSION | awk '{print $1}')
+  ENTERPRISE_VERSION="el-${MAJOR}"
 fi
 
 # Version of Puppet Collection
@@ -127,18 +128,12 @@ function install_puppetrepo {
 }
 
 function install_puppetrepo_el {
-  if test ! -f '/etc/yum.repos.d/puppetlabs-pc1.reop'; then
-    log "Fetching PC${pc} release package for ${distr^} ${rel^}"
-    if debugging; then
-      curl -L -O "https://yum.puppetlabs.com/puppetlabs-release-pc${pc}-${rel}.rpm"
-    else
-      curl -s -L -O "https://yum.puppetlabs.com/puppetlabs-release-pc${pc}-${rel}.rpm"
-    fi
+  if test ! -f '/etc/yum.repos.d/puppetlabs-pc1.repo'; then
     log "Installing Puppetlabs YUM repo entries for ${distr^} ${rel^}"
     if debugging; then
-      dpkg -i "puppetlabs-release-pc${pc}-${rel}.rpm"
+      yum install -y "http://yum.puppetlabs.com/puppetlabs-release-pc1-${ENTERPRISE_VERSION}.noarch.rpm"
     else
-      dpkg -i "puppetlabs-release-pc${pc}-${rel}.rpm" >/dev/null 2>&1
+      yum install -y "http://yum.puppetlabs.com/puppetlabs-release-pc1-${ENTERPRISE_VERSION}.noarch.rpm"
     fi
   else
     log "Puppetlabs YUM repo entries already installed, skipping"
