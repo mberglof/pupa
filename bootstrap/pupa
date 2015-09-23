@@ -88,8 +88,15 @@ command -v git >/dev/null 2>&1 || { log >&2 "git is not installed, ${PURPLE}abor
 ### - Testing prereqs - ###
 
 # Find the OS codename
-distr=$(lsb_release --id -s)
-rel=$(lsb_release --codename -s)
+if [ -x lsb_release ]; then
+  distr=$(lsb_release --id -s)
+  rel=$(lsb_release --codename -s)
+elif [ -f /etc/redhat-release ]; then
+  distr=$(awk '{print $1}' /etc/redhat-release)
+  VERSION=$(egrep -o "[[:digit:]]" /etc/redhat-release) || exit 1
+  MAJOR=$(echo $VERSION | awk '{print $1}')
+fi
+
 # Version of Puppet Collection
 pc=1
 # Where this script is located
@@ -108,6 +115,36 @@ function papply {
 }
 
 function install_puppetrepo {
+  case $distr in
+    Debian|Ubuntu)
+      install_puppetrepo_deb
+    ;;
+    RedHat|CentOS)
+      install_puppetrepo_el
+    ;;
+  esac
+}
+
+function install_puppetrepo_el {
+  if test ! -f '/etc/yum.repos.d/puppetlabs-pc1.reop'; then
+    log "Fetching PC${pc} release package for ${distr^} ${rel^}"
+    if debugging; then
+      curl -L -O "https://yum.puppetlabs.com/puppetlabs-release-pc${pc}-${rel}.rpm"
+    else
+      curl -s -L -O "https://yum.puppetlabs.com/puppetlabs-release-pc${pc}-${rel}.rpm"
+    fi
+    log "Installing Puppetlabs YUM repo entries for ${distr^} ${rel^}"
+    if debugging; then
+      dpkg -i "puppetlabs-release-pc${pc}-${rel}.rpm"
+    else
+      dpkg -i "puppetlabs-release-pc${pc}-${rel}.rpm" >/dev/null 2>&1
+    fi
+  else
+    log "Puppetlabs YUM repo entries already installed, skipping"
+  fi
+}
+
+function install_puppetrepo_deb {
   if test ! -f '/etc/apt/sources.list.d/puppetlabs-pc1.list'; then
     log "Fetching PC${pc} release package for ${distr^} ${rel^}"
     if debugging; then
@@ -126,6 +163,16 @@ function install_puppetrepo {
   fi
 }
 
+function refresh_yum_sources {
+  log "Refreshing YUM repos"
+  if debugging; then
+    yum update
+  else
+    apt-get update -qq > /dev/null 2>&1
+  fi
+  log "Done refreshing APT sources"
+}
+
 function refresh_apt_sources {
   log "Refreshing APT sources"
   if debugging; then
@@ -139,12 +186,23 @@ function refresh_apt_sources {
 function setup_puppet {
   log "Installing and configuring puppet"
   if test ! -f "${plbin}/puppet"; then
-    refresh_apt_sources
-    if debugging; then
-      apt-get install puppet-agent
-    else
-      DEBIAN_FRONTEND=noninteractive apt-get install -qq --yes --force-yes puppet-agent > /dev/null 2>&1
-    fi
+    case $distr in
+      Debian|Ubuntu)
+        refresh_apt_sources
+        if debugging; then
+          apt-get install puppet-agent
+        else
+          DEBIAN_FRONTEND=noninteractive apt-get install -qq --yes --force-yes puppet-agent > /dev/null 2>&1
+        fi
+      ;;
+      RedHat|CentOS)
+        if debugging; then
+          yum install puppet-agent
+        else
+          yum install puppet-agent --force
+        fi
+      ;;
+    esac
   fi
   papply "${pupa_dir}/manifests/puppet.pp"
   log "Successfully installed and configured puppet"

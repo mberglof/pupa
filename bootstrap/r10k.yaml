@@ -2,6 +2,6 @@ cachedir: '/var/cache/r10k'
 
 sources:
     puppet:
-      remote: 'https://github.com/daenney/pupa.git'
+      remote: 'https://github.com/mberglof/pupa.git'
       basedir: '/etc/puppetlabs/code/environments'
       prefix: false
