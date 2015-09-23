@@ -91,12 +91,13 @@ command -v git >/dev/null 2>&1 || { log >&2 "git is not installed, ${PURPLE}abor
 if [ `which lsb_release` ]; then
   distr=$(lsb_release --id -s)
   rel=$(lsb_release --codename -s)
+  ver=$(lsb_release -s -r | awk -F. '{print $1}')
 elif [ -f /etc/redhat-release ]; then
   distr=$(awk '{print $1}' /etc/redhat-release)
   rel=$(awk '{print $1}' /etc/redhat-release)
   VERSION=$(egrep -o "[[:digit:]]" /etc/redhat-release) || exit 1
   MAJOR=$(echo $VERSION | awk '{print $1}')
-  ENTERPRISE_VERSION="el-${MAJOR}"
+  ver="${MAJOR}"
 fi
 
 # Version of Puppet Collection
@@ -131,9 +132,9 @@ function install_puppetrepo_el {
   if test ! -f '/etc/yum.repos.d/puppetlabs-pc1.repo'; then
     log "Installing Puppetlabs YUM repo entries for ${distr^} ${rel^}"
     if debugging; then
-      yum install -y "http://yum.puppetlabs.com/puppetlabs-release-pc1-${ENTERPRISE_VERSION}.noarch.rpm"
+      yum install -y "http://yum.puppetlabs.com/puppetlabs-release-pc1-el-${ver}.noarch.rpm"
     else
-      yum install -y "http://yum.puppetlabs.com/puppetlabs-release-pc1-${ENTERPRISE_VERSION}.noarch.rpm"
+      yum install -y "http://yum.puppetlabs.com/puppetlabs-release-pc1-el-${ver}.noarch.rpm"
     fi
   else
     log "Puppetlabs YUM repo entries already installed, skipping"
